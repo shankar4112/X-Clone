@@ -1,0 +1,4 @@
+# Ignore .env and private data
+.env
+private_data/
+secrets.json
