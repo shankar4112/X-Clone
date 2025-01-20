@@ -1,4 +1,13 @@
-# Ignore .env and private data
+# Ignore environment files
 .env
-private_data/
-secrets.json
+.env.local
+
+# Ignore node_modules
+node_modules/
+
+# Ignore log files
+*.log
+
+# Ignore build outputs
+dist/
+build/
