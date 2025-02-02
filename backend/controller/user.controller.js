@@ -43,6 +43,16 @@ else{
     //follow
     await User.findByIdAndUpdate({_id:id},{$push:{followers:req.user._id}})
     await User.findByIdAndUpdate({_id:req.user._id},{$push:{following:id}})
+    //send notification
+    const newNotification=new newNotification(
+        {
+        type:"follow",
+        from:req.user._id,
+        to:userTomodify._id
+
+});
+await newNotification.save()
+    return res.status(200).json({message:"Follow Sucessfully"})
 
 }
     }
