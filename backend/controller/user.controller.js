@@ -1,6 +1,5 @@
 import User from "../models/user.model.js";
 import Notification from "../models/notification.model.js";
-
 export const getProfile = async (req, res) => {
   try {
     const { username } = req.params;
