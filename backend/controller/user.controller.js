@@ -1,5 +1,7 @@
 import User from "../models/user.model.js";
 import Notification from "../models/notification.model.js";
+import bcrypt from 'bcryptjs';
+import cloudinary from 'cloudinary';
 export const getProfile = async (req, res) => {
   try {
     const { username } = req.params;
@@ -33,7 +35,7 @@ export const followUnFollowUser = async (req, res) => {
       // Unfollow
       await User.findByIdAndUpdate({ _id: id }, { $pull: { followers: req.user._id } });
       await User.findByIdAndUpdate({ _id: req.user._id }, { $pull: { following: id } });
-      return res.status(200).json({ message: "Unfollowed successfully" });
+       res.status(200).json({ message: "Unfollowed successfully" });
     } else {
       // Follow
       await User.findByIdAndUpdate({ _id: id }, { $push: { followers: req.user._id } });
@@ -47,11 +49,11 @@ export const followUnFollowUser = async (req, res) => {
       });
       await newNotification.save();
 
-      return res.status(200).json({ message: "Followed successfully" });
+       res.status(200).json({ message: "Followed successfully" });
     }
   } catch (error) {
     console.log(`Error in follow and unfollow controller: ${error}`);
-    res.status(500).json({ error: "Internal server error" });
+     res.status(500).json({ error: "Internal server error" });
   }
 };
 
@@ -70,13 +72,88 @@ const users=await User.aggregate([
 }
 ])
 const filteredUser=users.filter((user)=>!userFollowedByMe.following.includes(user._id))
-const suggestedUsers=filteredUser.slice(0,5);
+const suggestedUsers=filteredUser.slice(0,4);
 suggestedUsers.forEach((user)=>(user.password=null))
 res.status(200).json(suggestedUsers);
     }
     catch(error)
     {
         console.log(`Error in geySuggestedUsers Controller: ${error}`);
-    res.status(500).json({ error: "Internal server error" });
+     res.status(500).json({ error: "Internal server error" });
     }
 }
+ export const updateUser =async (req,res)=>{
+  try{
+const userId=req.user._id;
+
+const {username,fullName,email,currentPassword,newPassword,bio,link}=req.body;
+let {profileImg,coverImg}=req.body;
+let user=await User.findById({_id:userId});
+if(!user){
+  return res.status(400).json({ error: "User not found" });
+
+}
+if((!newPassword&&currentPassword)||(!currentPassword&&newPassword)){
+  return res.status(400).json({ error: "Please Provide the Both the current and new Password" });
+
+
+}
+if(currentPassword&&newPassword)
+{
+  const isMatch=await bcrypt.compare(currentPassword,user.password)
+  if(!isMatch)
+  {    return res.status(400).json({ error: "Current Password Doesn't Match" });
+
+  }
+  if(newPassword.length<8){
+    return res.status(400).json({ error: "Password Must Have atleast 6 Character" });
+
+  }
+  if(newPassword===currentPassword)
+  {
+    return res.status(400).json({ error: "Both Password are same !Try again with New Password" });
+
+  }
+  const salt=await  bcrypt.genSalt(10);
+user.password=await bcrypt.hash(newPassword,salt);
+
+  }
+  
+  // if(profileImg)
+  // { 
+  //   if(user.profileImg){
+  //     // https://(res.cloudinary.com/dcp7yipbt/1mage/upload/v1726817523/cld-sample-5.jpg
+  //     await cloudinary.uploader.destroy(user.profileImg.split("/").pop().split(".")[0])
+  //   }
+  //  const uploadedResponse=await cloudinary.uploader.upload(profileImg);
+  //  profileImg=uploadedResponse.secure_url;
+  // }
+  // if(coverImg)
+  // {
+  //   if(user.coverImg)
+  //   {
+  //     await cloudinary.uploader.destroy(user.coverImg.split("/").pop().split(".")[0])
+
+  //   }
+  //   const uploadedResponse=await cloudinary.uploader.upload(coverImg);
+  //  coverImg=uploadedResponse.secure_url;
+  // }
+
+  user.fullName = fullName || user.fullName;
+user.email = email || user.email;
+user.username = username || user.username;
+user.bio = bio || user.bio;
+user.link = link || user.link;
+user.profileImg = profileImg || user.profileImg;
+user.coverImg = coverImg || user.coverImg;
+user=await user.save();
+//password is null in response not in the database
+user.password=null;
+return res.status(200).json(user);
+}
+  catch(error)
+    {
+        console.log(`Error in updateUser Controller: ${error}`);
+         res.status(500).json({ error: "Internal server error" });
+    }
+ }
